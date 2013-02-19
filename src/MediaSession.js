@@ -78,7 +78,11 @@ JsSIP.MediaSession.prototype = {
       function(sessionDescription){
         self.peerConnection.setLocalDescription(
           sessionDescription,
-          null,
+          function() { 
+                     if (window.mozRTCPeerConnection) {
+                         self.onIceCompleted();
+                     }
+          },
           onFailure
         );
       },
@@ -207,12 +211,7 @@ JsSIP.MediaSession.prototype = {
 
     this.peerConnection.setRemoteDescription(
       new JsSIP.WebRTC.RTCSessionDescription({type: type, sdp:body}),
-      function(){
-          onSuccess();
-          if (window.mozRTCPeerConnection) {
-              self.onIceCompleted();
-          }
-      },
+      onSuccess,
       onFailure
     );
   }

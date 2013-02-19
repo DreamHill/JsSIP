@@ -110,8 +110,6 @@ JsSIP.MediaSession.prototype = {
 
     this.peerConnection = new JsSIP.WebRTC.RTCPeerConnection({'iceServers': servers}, RTCConstraints);
 
-    this.peerConnection.mediaSession = self;
-
     this.peerConnection.onopen = function() {
       console.log(JsSIP.C.LOG_MEDIA_SESSION +'media session opened');
     };
@@ -127,12 +125,14 @@ JsSIP.MediaSession.prototype = {
     this.peerConnection.onicecandidate = function(e) {
       if (e.candidate) {
         console.log(JsSIP.C.LOG_MEDIA_SESSION + 'ICE candidate received: '+ e.candidate.candidate);
+      } else {
+        self.onIceCompleted();
       }
     };
 
     this.peerConnection.ongatheringchange = function(e) {
       if (e.currentTarget.iceGatheringState === 'complete' && this.iceConnectionState !== 'closed') {
-        this.mediaSession.onIceCompleted();
+        self.onIceCompleted();
       }
     };
 

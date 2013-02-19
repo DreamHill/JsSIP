@@ -11,6 +11,12 @@
 JsSIP.MediaSession = function(session, RTCConstraints) {
   RTCConstraints = RTCConstraints || {};
 
+  if (window.webkitRTCPeerConnection) {
+      // Enable DTLS
+      if (!RTCConstraints.optional)
+          RTCConstraints.optional = [];
+      RTCConstraints.optional.push({'DtlsSrtpKeyAgreement':true});
+  }
   this.session = session;
   this.localMedia = null;
   this.peerConnection = null;
@@ -36,9 +42,11 @@ JsSIP.MediaSession.prototype = {
       function(sessionDescription){
         self.peerConnection.setLocalDescription(
           sessionDescription,
-          function() {
-                       self.onIceCompleted();
-                      },
+          function() { 
+                     if (window.mozRTCPeerConnection) {
+                         self.onIceCompleted();
+                     }
+          },
           onFailure);
         },
       onFailure,
@@ -187,9 +195,16 @@ JsSIP.MediaSession.prototype = {
   * @param {Function} onFailure
   */
   onMessage: function(type, body, onSuccess, onFailure) {
+    var self = this;
+
     this.peerConnection.setRemoteDescription(
       new JsSIP.WebRTC.RTCSessionDescription({type: type, sdp:body}),
-      onSuccess,
+      function(){
+          onSuccess();
+          if (window.mozRTCPeerConnection) {
+              self.onIceCompleted();
+          }
+      },
       onFailure
     );
   }

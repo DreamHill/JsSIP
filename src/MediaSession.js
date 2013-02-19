@@ -33,10 +33,10 @@ JsSIP.MediaSession.prototype = {
       sent = false;
 
     if (window.mozRTCPeerConnection) {
-        if (!constraints.mandatory) {
-            constraints.mandatory = {};
+        if (!constraints.offerConstraints.mandatory) {
+            constraints.offerConstraints.mandatory = {};
         }
-        constraints.mandatory['MozDontOfferDataChannel'] = true;
+        constraints.offerConstraints.mandatory['MozDontOfferDataChannel'] = true;
     }
 
     this.onIceCompleted = function() {

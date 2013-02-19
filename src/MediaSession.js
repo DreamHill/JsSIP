@@ -36,17 +36,11 @@ JsSIP.MediaSession.prototype = {
       function(sessionDescription){
         self.peerConnection.setLocalDescription(
           sessionDescription,
-          null,
-          onFailure
-        );
-
-        if (window.navigator.mozGetUserMedia) {
-            // Simulate candidates finished for Firefox.
-            setTimeout(function() {
+          function() {
                        self.onIceCompleted();
-                       }, 1);
-        }
-      },
+                      },
+          onFailure);
+        },
       onFailure,
       constraints.offerConstraints
     );

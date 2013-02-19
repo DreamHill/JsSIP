@@ -39,6 +39,8 @@ JsSIP.MediaSession.prototype = {
           null,
           onFailure
         );
+
+        // TODO: Simulate ice completed for firefox.
       },
       onFailure,
       constraints.offerConstraints

@@ -13,8 +13,9 @@ JsSIP.MediaSession = function(session, RTCConstraints) {
 
   if (window.webkitRTCPeerConnection) {
       // Enable DTLS
-      if (!RTCConstraints.optional)
+      if (!RTCConstraints.optional) {
           RTCConstraints.optional = [];
+      }
       RTCConstraints.optional.push({'DtlsSrtpKeyAgreement':true});
   }
   this.session = session;

@@ -40,7 +40,12 @@ JsSIP.MediaSession.prototype = {
           onFailure
         );
 
-        // TODO: Simulate ice completed for firefox.
+        if (window.navigator.mozGetUserMedia) {
+            // Simulate candidates finished for Firefox.
+            setTimeout(function() {
+                       self.onIceCompleted();
+                       }, 1);
+        }
       },
       onFailure,
       constraints.offerConstraints

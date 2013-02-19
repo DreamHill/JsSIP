@@ -216,3 +216,5 @@ JsSIP.MediaSession.prototype = {
     );
   }
 };
+
+

@@ -40,6 +40,16 @@ Exceptions= {
     };
     exception.prototype = new Error();
     return exception;
+  }()),
+
+  WebRTCError: (function(){
+    var exception = function(message) {
+      this.code = 4;
+      this.name = 'WEBRTC_ERROR';
+      this.message =  message;
+    };
+    exception.prototype = new Error();
+    return exception;
   }())
 };
 

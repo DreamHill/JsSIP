@@ -16,7 +16,6 @@ module.exports = function(grunt) {
     'src/Transactions.js',
     'src/Dialogs.js',
     'src/RequestSender.js',
-    'src/InDialogRequestSender.js',
     'src/Registrator.js',
     'src/RTCSession.js',
     'src/Message.js',
@@ -24,7 +23,9 @@ module.exports = function(grunt) {
     'src/Utils.js',
     'src/SanityCheck.js',
     'src/DigestAuthentication.js',
-    'src/WebRTC.js'
+    'src/WebRTC.js',
+    'src/RTCSession/MediaStream.js',
+    'src/RTCSession/MediaStreamTrack.js'
   ];
 
   // Project configuration.

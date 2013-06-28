@@ -10,7 +10,6 @@
 
 var Request = function(session) {
   var events = [
-  'progress',
   'succeeded',
   'failed'
   ];
@@ -61,10 +60,6 @@ Request.prototype.receiveResponse = function(response) {
 
   switch(true) {
     case /^1[0-9]{2}$/.test(response.status_code):
-      this.emit('progress', this, {
-        originator: 'remote',
-        response: response
-      });
       break;
 
     case /^2[0-9]{2}$/.test(response.status_code):

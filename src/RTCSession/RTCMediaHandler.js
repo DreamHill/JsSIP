@@ -21,49 +21,33 @@ var RTCMediaHandler = function(session, constraints) {
 
 RTCMediaHandler.prototype = {
 
-  createOffer: function(onSuccess, onFailure) {
-    var
-      self = this,
-      sent = false;
-
-    this.onIceCompleted = function() {
-      if (!sent) {
-        sent = true;
-        onSuccess(self.peerConnection.localDescription.sdp);
-      }
-    };
+  createOffer: function(onSuccess, onFailure, constraints) {
+    var self = this;
 
     this.peerConnection.createOffer(
       function(sessionDescription){
         self.setLocalDescription(
           sessionDescription,
+          onSuccess,
           onFailure
         );
       },
       function(e) {
         console.error(LOG_PREFIX +'unable to create offer');
         console.error(e);
-        onFailure();
-      }
+      },
+      constraints
     );
   },
 
-  createAnswer: function(onSuccess, onFailure) {
-    var
-      self = this,
-      sent = false;
-
-    this.onIceCompleted = function() {
-      if (!sent) {
-        sent = true;
-        onSuccess(self.peerConnection.localDescription.sdp);
-      }
-    };
+  createAnswer: function(onSuccess, onFailure, constraints) {
+    var self = this;
 
     this.peerConnection.createAnswer(
       function(sessionDescription){
         self.setLocalDescription(
           sessionDescription,
+          onSuccess,
           onFailure
         );
       },
@@ -71,20 +55,34 @@ RTCMediaHandler.prototype = {
         console.error(LOG_PREFIX +'unable to create answer');
         console.error(e);
         onFailure();
-      }
+      },
+      constraints
     );
   },
 
-  setLocalDescription: function(sessionDescription, onFailure) {
+  setLocalDescription: function(sessionDescription, onSuccess, onFailure) {
+    var self = this;
+
     this.peerConnection.setLocalDescription(
       sessionDescription,
-      null,
+      function() {
+      },
       function(e) {
         console.error(LOG_PREFIX +'unable to set local description');
         console.error(e);
         onFailure();
       }
     );
+
+    // Ice gathering is triggered by setLocalDescription,
+    // and not allways is done. ie: when removing a stream.
+    if (this.peerConnection.iceGatheringState === 'complete') {
+      onSuccess(this.peerConnection.localDescription.sdp);
+    } else {
+      this.onIceCompleted = function() {
+        onSuccess(self.peerConnection.localDescription.sdp);
+      };
+    }
   },
 
   addStream: function(stream, onSuccess, onFailure, constraints) {
@@ -100,11 +98,26 @@ RTCMediaHandler.prototype = {
     onSuccess();
   },
 
+  removeStream: function(stream, onSuccess, onFailure) {
+    try {
+      this.peerConnection.removeStream(stream);
+    } catch(e) {
+      console.error(LOG_PREFIX +'error removing stream');
+      console.error(e);
+      onFailure();
+      return;
+    }
+
+    onSuccess();
+  },
+
   /**
   * peerConnection creation.
   * @param {Function} onSuccess Fired when there are no more ICE candidates
   */
   init: function(constraints) {
+    constraints = {"optional":[{"DtlsSrtpKeyAgreement":false}]};
+
     var idx, server, scheme, url,
       self = this,
       servers = [];
@@ -127,34 +140,43 @@ RTCMediaHandler.prototype = {
     this.peerConnection = new JsSIP.WebRTC.RTCPeerConnection({'iceServers': servers}, constraints);
 
     this.peerConnection.onaddstream = function(e) {
-      console.log(LOG_PREFIX +'stream added: '+ e.stream.id);
+      var mediaStream = new JsSIP.MediaStream(self.session, e.stream, 'remote');
+
+      mediaStream.on('ended', function() {
+        console.log(LOG_PREFIX +'remote stream ended: '+ mediaStream.id);
+      });
+
+      self.session.mediaStreamAdded('remote', mediaStream);
     };
 
     this.peerConnection.onremovestream = function(e) {
-      console.log(LOG_PREFIX +'stream removed: '+ e.stream.id);
+      self.session.mediaStreamRemoved('remote', e.stream);
     };
 
     this.peerConnection.onicecandidate = function(e) {
       if (e.candidate) {
         console.log(LOG_PREFIX +'ICE candidate received: '+ e.candidate.candidate);
       } else {
-        self.onIceCompleted();
+        if (self.onIceCompleted) {
+          self.onIceCompleted();
+          self.onIceCompleted = undefined;
+        }
       }
     };
 
-    // To be deprecated as per https://code.google.com/p/webrtc/issues/detail?id=1393
-    this.peerConnection.ongatheringchange = function(e) {
-      if (e.currentTarget.iceGatheringState === 'complete' && this.iceConnectionState !== 'closed') {
-        self.onIceCompleted();
-      }
+    this.peerConnection.onsignalingstatechange = function() {
+      console.log(LOG_PREFIX +'PeerConnection signaling state changed to "'+ this.signalingState +'"');
     };
 
-    this.peerConnection.onicechange = function() {
+    this.peerConnection.oniceconnectionstatechange = function() {
       console.log(LOG_PREFIX +'ICE connection state changed to "'+ this.iceConnectionState +'"');
+      console.log(LOG_PREFIX +'iceGateringState: '+ this.iceGatheringState);
     };
 
-    this.peerConnection.onstatechange = function() {
-      console.log(LOG_PREFIX +'PeerConnection state changed to "'+ this.readyState +'"');
+    this.peerConnection.onnegotiationneeded = function () {
+      console.log(LOG_PREFIX +'negotiation needed');
+      console.log(LOG_PREFIX +'iceConnectionState: '+ this.iceConnectionState);
+      console.log(LOG_PREFIX +'iceGateringState: '+ this.iceGatheringState);
     };
   },
 
@@ -169,29 +191,6 @@ RTCMediaHandler.prototype = {
     }
   },
 
-  /**
-  * @param {Object} mediaConstraints
-  * @param {Function} onSuccess
-  * @param {Function} onFailure
-  */
-  getUserMedia: function(onSuccess, onFailure, constraints) {
-    var self = this;
-
-    console.log(LOG_PREFIX + 'requesting access to local media');
-
-    JsSIP.WebRTC.getUserMedia(constraints,
-      function(stream) {
-        console.log(LOG_PREFIX + 'got local media stream');
-        self.localMedia = stream;
-        onSuccess(stream);
-      },
-      function(e) {
-        console.error(LOG_PREFIX +'unable to get user media');
-        console.error(e);
-        onFailure();
-      }
-    );
-  },
 
   /**
   * Message reception.
@@ -204,7 +203,11 @@ RTCMediaHandler.prototype = {
     this.peerConnection.setRemoteDescription(
       new JsSIP.WebRTC.RTCSessionDescription({type: type, sdp:body}),
       onSuccess,
-      onFailure
+      function(e){
+        console.error(LOG_PREFIX +'error setting remote description');
+        console.error(e);
+        onFailure();
+      }
     );
   }
 };

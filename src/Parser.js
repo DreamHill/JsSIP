@@ -158,6 +158,7 @@ function parseHeader(message, data, headerStart, headerEnd) {
   }
 
   if (parsed === undefined) {
+    console.warn(LOG_PREFIX +'error parsing header "'+ headerName +'"' );
     return false;
   } else {
     return true;

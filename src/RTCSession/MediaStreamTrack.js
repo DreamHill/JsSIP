@@ -100,5 +100,24 @@ MediaStreamTrack = function(track) {
 };
 MediaStreamTrack.prototype = new JsSIP.EventEmitter();
 
+
+MediaStreamTrack.prototype.mute = function() {
+  if (!this.enabled) {
+    return;
+  }
+
+  this.enabled = false;
+  this.emit('muted', this);
+};
+
+MediaStreamTrack.prototype.unmute = function() {
+  if (this.enabled) {
+    return;
+  }
+
+  this.enabled = true;
+  this.emit('unmuted', this);
+};
+
 JsSIP.MediaStreamTrack = MediaStreamTrack;
 }(JsSIP));

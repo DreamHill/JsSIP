@@ -37,9 +37,7 @@ RTCSession = function(ua) {
   'ended',
   'newDTMF',
   'mediaStreamAdded',
-  'mediaStreamRemoved',
-  'muted',
-  'unmuted'
+  'mediaStreamRemoved'
   ];
 
   this.ua = ua;
@@ -64,9 +62,6 @@ RTCSession = function(ua) {
   this.remote_identity = null;
   this.start_time = null;
   this.end_time = null;
-
-  // Session muted
-  this.muted = false;
 
   // Custom session empty object for high level use
   this.data = {};
@@ -308,28 +303,6 @@ RTCSession.prototype.sendDTMF = function(tones, options) {
     },
     interToneGap
   );
-};
-
-/**
- * toggleMute
- */
-RTCSession.prototype.toggleMute = function() {
-  var streamIdx, trackIdx, tracks;
-
-  this.muted = !this.muted;
-
-  for (streamIdx in this.localMediaStreams) {
-    tracks = this.localMediaStreams[streamIdx].getAudioTracks();
-    for (trackIdx in tracks) {
-      tracks[trackIdx].enabled = !this.muted;
-    }
-  }
-
-  if(this.muted) {
-    this.emit('muted', this);
-  } else {
-    this.emit('unmuted', this);
-  }
 };
 
 
